@@ -70,35 +70,96 @@ regTheta(1) = 0;
 
 h1 = sigmoid([ones(m, 1) X] * Theta1');
 h2 = sigmoid([ones(m, 1) h1] * Theta2');
+%fprintf("\nsize of h2 in the beginning is %s:", mat2str(size(h2)))
 
-size(h2)
-#h2
-# Make a 5000 x 10 matrix from y using logical vectors [0,...,1,...] instead of number lables
-Y = repmat(y(:),1,10) .== repmat(1:10,m,1);
+% Make a 5000 x 10 matrix from y using logical vectors [0,...,1,...] instead of number labels
 
+v_y = repmat(y(:),1,num_labels);
 
+v_logical = repmat(1:num_labels,m,1);
 
-J = (1/m) * ( -Y'*log(h2) ...
-              - (1-Y')*log(1 - h2) ...
-              + (lambda/2)*regTheta'*regTheta ) ;
+Y = bsxfun(@eq, v_y, v_logical);
 
+%%%%%%%%%%%%%% DEBUG BLOCK %%%%%%%%%%%%%
+%y(1:3,1)
+%v_y(1:3,:)
+%v_logical(1:3,:)
+%Y(1:3,:)
 
+%fprintf("size of Y' is %s:", mat2str(size(Y')))
+%fprintf("\nsize of log(h2) is %s:", mat2str(size(log(h2))))
+%fprintf("\nsize of y'*log(h2) is %s:", mat2str(size(y'*log(h2))))
+%fprintf("\nsize of Y'*log(h2) is %s:", mat2str(size(Y'*log(h2))))
+%fprintf("\nsize of (1-h2) is %s:", mat2str(size(1 - h2)))
+%fprintf("\nsize of (1-y') is %s:", mat2str(size(1 - y')))
 
+regTheta1 = Theta1;
+regTheta1(:,1) = 0;
+regTheta2 = Theta2;
+regTheta2(:,1) = 0;
 
+% The k-sum is essentially a diagonal of the k x k matrix produced when
+% multiplying Y'*h2
+J = (1/m)*( sum(diag( -(Y')*log(h2) - (1-Y')*log(1 - h2) )) )...
+  + (lambda/(2*m))*( sum(diag(regTheta1'*regTheta1)) + sum(diag(regTheta2'*regTheta2)) );
 
-
-
-
-
-
-
-
+%fprintf("\nsum(diag(Jk)) is %s:", sum(diag(Jk)) )
 % -------------------------------------------------------------
 
 % =========================================================================
 
+% Doing backpropagation 
+a1 = [ones(m, 1) X];
+a2 = sigmoid([ones(m, 1) X] * Theta1');
+z2 = [ones(m, 1) X] * Theta1';
+z2 = [ones(m, 1) z2];
+a3 = sigmoid([ones(m, 1) a2] * Theta2');
+
+Delta1=zeros(size(Theta1));
+%Delta1=Delta1(:,2:end);
+Delta2=zeros(size(Theta2));
+%Delta2=Delta2(:,2:end);
+
+for t = (1:m) 
+    a1_t = a1(t,:);
+    a2_t = a2(t,:);
+    a2_t = [1 a2_t];
+    z2_t = z2(t,:);
+    a3_t = a3(t,:);
+    y_t = y(t,:);
+    Y_t = Y(t,:);
+    
+    delta_3 = (a3_t - Y_t);   % size num_labels x 1
+%    fprintf("\nSize of Theta2: %s", mat2str(size(Theta2)))
+%    fprintf("\nSize of delta_3: %s", mat2str(size(delta_3)))
+%    fprintf("\nSize of sigmoidGradient(z2_t): %s", mat2str(size(sigmoidGradient(z2_t))))
+%    fprintf("\nSize of (delta_3*Theta2): %s", mat2str(size(delta_3*Theta2)))
+
+    delta_2 = (delta_3*Theta2) .* sigmoidGradient(z2_t); 
+    delta_2 = delta_2(2:end);
+%{
+    fprintf("\nSize of delta_2: %s", mat2str(size(delta_2)))
+    fprintf("\nSize of a1_t: %s", mat2str(size(a1_t)))
+    fprintf("\nSize of delta_2*a1_t: %s", mat2str(size(delta_2'*a1_t)))
+    fprintf("\nSize of Delta1: %s", mat2str(size(Delta1)))
+    fprintf("\nSize of delta_3: %s", mat2str(size(delta_3)))
+    fprintf("\nSize of a2_t: %s", mat2str(size(a2_t)))
+%}
+    Delta1 = Delta1 + delta_2'*a1_t;
+    Delta2 = Delta2 + delta_3'*a2_t;
+    
+end
+%Delta1 = [zeros(1,input_layer_size); Delta1];
+%Delta2 = [zeros(1,hidden_layer_size); Delta2];
+
+fprintf("\nSize of Theta1_grad: %s", mat2str(size(Theta1_grad)))
+fprintf("\nSize of regTheta1: %s", mat2str(size(regTheta1)))
+Theta1_grad = (1/m)*Delta1 + (lambda/m)*regTheta1;
+Theta2_grad = (1/m)*Delta2 + (lambda/m)*regTheta2;
+
+%fprintf("\nSize of Theta2_grad: %s", mat2str(size(Theta2_grad)))
+
 % Unroll gradients
 grad = [Theta1_grad(:) ; Theta2_grad(:)];
-
 
 end
