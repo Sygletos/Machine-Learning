@@ -24,8 +24,8 @@ for iter = 1:num_iters
     % (X*theta - y)' * X is (1,97)x(97,2) = (1,2)
     % So ( (X*theta - y)' * X )' gives (2,1) which is same as size(theta)
     
-    sum( (X*theta - y)' * X )
-    theta = theta - (alpha/m) * ( (X*theta - y)'*X )'
+    sum( (X*theta - y)' * X );
+    theta = theta - (alpha/m) * ( (X*theta - y)'*X )';
 
     % ============================================================
 
